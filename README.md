@@ -49,10 +49,6 @@ The project performs the following steps:
   - lightgbm
   - warnings (builtin)
   
-You can install the required packages using `pip`:
-
-```bash
-pip install pandas matplotlib numpy scikit-learn joblib xgboost lightgbm
 
 
 
