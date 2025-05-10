@@ -66,7 +66,7 @@ def optimize_model(X_train, y_train, freq, models_dict):
         if model_name == "IsolationForest":
             model.fit(X_train)
             y_pred = model.predict(X_train)
-            # In IsolationForest, -1 is anomaly, 1 is normal 
+            # In IsolationForest, -1 is anomaly, 1 is normal
             y_pred = np.where(y_pred == -1, 1, 0)  # Assuming class 1 is our anomaly class
             score = f1_score(y_train, y_pred, average='weighted')
             best_models[model_name] = model
@@ -78,7 +78,7 @@ def optimize_model(X_train, y_train, freq, models_dict):
         search = RandomizedSearchCV(
             estimator=model,
             param_distributions=param_dist,
-            n_iter=5,  # I had to reduce number of iterations because of hardware limitations
+            n_iter=5,  # reduced iterations due to hardware limitations
             cv=tscv,
             scoring='f1_weighted',
             n_jobs=-1,
@@ -104,6 +104,9 @@ def evaluate_models(models, X_test, y_test, label_encoder, freq):
     """Evaluate all models on test data."""
     results = {}
     
+    # Use the new five directional classes:
+    target_names = ['DOWN', 'MODERATE_DOWN', 'SAME', 'MODERATE_UP', 'UP']
+    
     for model_name, model in models.items():
         if model_name == "IsolationForest":
             y_pred = model.predict(X_test)
@@ -113,10 +116,10 @@ def evaluate_models(models, X_test, y_test, label_encoder, freq):
         
         print(f"\n{model_name} Model Evaluation ({freq}):")
         report = classification_report(y_test, y_pred, 
-                                       target_names=['DOWN', 'SAME', 'UP'],
+                                       target_names=target_names,
                                        output_dict=True)
         print(classification_report(y_test, y_pred, 
-                                    target_names=['DOWN', 'SAME', 'UP']))
+                                    target_names=target_names))
         
         results[model_name] = {
             'f1_weighted': report['weighted avg']['f1-score'],
@@ -179,7 +182,7 @@ def main():
                 random_state=42,
                 objective='multi:softprob',
                 tree_method='hist',
-                num_class=3
+                num_class=5  # adjust num_class to 5
             ),
             {
                 'n_estimators': [100],
@@ -196,7 +199,7 @@ def main():
                 random_state=42,
                 objective='multiclass',
                 class_weight='balanced',
-                num_class=3,
+                num_class=5,  # adjust num_class to 5
                 verbose=-1,
                 is_unbalance=True
             ),
@@ -218,7 +221,7 @@ def main():
                 n_jobs=-1,
                 max_samples='auto'
             ),
-            {}  # No hyperparameter IsolationForest
+            {}  # No hyperparameter tuning for IsolationForest
         )
     }
     
@@ -233,6 +236,7 @@ def main():
 
     features_min = select_features('minute')
     X_train_min = train_min[features_min]
+    # Fit and transform the new five-level 'direction' column
     y_train_min = label_encoder.fit_transform(train_min['direction'])
     X_test_min = test_min[features_min]
     y_test_min = label_encoder.transform(test_min['direction'])
@@ -271,8 +275,7 @@ def main():
     plot_model_comparison(results_daily, 'Daily-Level')
     
     joblib.dump(best_models_daily[best_model_name_daily], f'best_model_daily_{best_model_name_daily.lower()}.pkl')
-    for model_name, model in best_models_daily.items():
-        joblib.dump(model, f'model_daily_{model_name.lower()}.pkl')
+    
     
     print("\n" + "=" * 80)
     print("SUMMARY OF RESULTS")
@@ -283,3 +286,4 @@ def main():
 
 if __name__ == "__main__":
     main()
+
